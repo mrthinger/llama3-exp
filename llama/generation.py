@@ -18,7 +18,8 @@ from fairscale.nn.model_parallel.initialize import (
 
 from llama.model import ModelArgs, Transformer
 from llama.tokenizer import ChatFormat, Dialog, Message, Tokenizer
-
+from quanto import Calibration, freeze, qfloat8, qint4, qint8, quantize
+from llama.config import DEVICE
 
 class CompletionPrediction(TypedDict, total=False):
     generation: str
@@ -65,17 +66,17 @@ class Llama:
             and loads the pre-trained model and tokenizer.
         """
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group("gloo")
+            torch.distributed.init_process_group("nccl")
         if not model_parallel_is_initialized():
             if model_parallel_size is None:
                 model_parallel_size = int(os.environ.get("WORLD_SIZE", 1))
             initialize_model_parallel(model_parallel_size)
 
-        torch.set_default_dtype(torch.float16)
-        torch.set_default_device("mps")
+        torch.set_default_dtype(torch.bfloat16)
+        torch.set_default_device(DEVICE)
         # torch.set_default_device("cpu")
         local_rank = int(os.environ.get("LOCAL_RANK", 0))
-        # torch.cuda.set_device(local_rank)
+        torch.cuda.set_device(local_rank)
 
         # seed must be the same in all processes
         torch.manual_seed(seed)
@@ -101,14 +102,19 @@ class Llama:
         )
         tokenizer = Tokenizer(model_path=tokenizer_path)
         assert model_args.vocab_size == tokenizer.n_words
-     
 
         # torch.set_default_device("cuda" if torch.cuda.is_available() else "cpu")
         # model = Transformer(model_args)
-        model = Transformer(model_args).to(device="mps")
+        model = Transformer(model_args).to(device=DEVICE)
 
         model.load_state_dict(checkpoint, strict=False)
         print(f"Loaded in {time.time() - start_time:.2f} seconds")
+
+        start_time = time.time()
+
+        quantize(model, weights=qfloat8)
+        freeze(model)
+        print(f"Quantod in {time.time() - start_time:.2f} seconds")
 
         return Llama(model, tokenizer)
 
@@ -157,16 +163,16 @@ class Llama:
 
         pad_id = self.tokenizer.pad_id
         # tokens = torch.full((bsz, total_len), pad_id, dtype=torch.long)
-        tokens = torch.full((bsz, total_len), pad_id, dtype=torch.long, device="mps")
+        tokens = torch.full((bsz, total_len), pad_id, dtype=torch.long, device=DEVICE)
         for k, t in enumerate(prompt_tokens):
             # tokens[k, : len(t)] = torch.tensor(t, dtype=torch.long)
-            tokens[k, : len(t)] = torch.tensor(t, dtype=torch.long, device="mps")
+            tokens[k, : len(t)] = torch.tensor(t, dtype=torch.long, device=DEVICE)
         if logprobs:
             token_logprobs = torch.zeros_like(tokens, dtype=torch.float)
 
         prev_pos = 0
         # eos_reached = torch.tensor([False] * bsz)
-        eos_reached = torch.tensor([False] * bsz, device="mps")
+        eos_reached = torch.tensor([False] * bsz, device=DEVICE)
         input_text_mask = tokens != pad_id
         if min_prompt_len == total_len:
             logits = self.model.forward(tokens, prev_pos)
