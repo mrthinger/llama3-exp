@@ -96,6 +96,8 @@ class Attention(nn.Module):
         self.n_local_kv_heads = self.n_kv_heads // model_parallel_size
         self.n_rep = self.n_local_heads // self.n_local_kv_heads
         self.head_dim = args.dim // args.n_heads
+        # self.device = torch.device("cpu")
+        self.device = torch.device("mps")
 
         self.wq = ColumnParallelLinear(
             args.dim,
@@ -133,7 +135,7 @@ class Attention(nn.Module):
                 self.n_local_kv_heads,
                 self.head_dim,
             )
-        ).cuda()
+        ).to(self.device)
         self.cache_v = torch.zeros(
             (
                 args.max_batch_size,
@@ -141,7 +143,7 @@ class Attention(nn.Module):
                 self.n_local_kv_heads,
                 self.head_dim,
             )
-        ).cuda()
+        ).to(self.device)
 
     def forward(
         self,
@@ -283,9 +285,10 @@ class Transformer(nn.Module):
 
         mask = None
         if seqlen > 1:
-            mask = torch.full((seqlen, seqlen), float("-inf"), device=tokens.device)
+            mask = torch.full((seqlen, seqlen), float("-inf"), device="cpu")
 
             mask = torch.triu(mask, diagonal=1)
+            mask = mask.to(device=tokens.device)
 
             # When performing key-value caching, we compute the attention scores
             # only for the new sequence. Thus, the matrix of scores is of size
