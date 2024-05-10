@@ -112,8 +112,8 @@ class Llama:
 
         start_time = time.time()
 
-        quantize(model, weights=qfloat8)
-        freeze(model)
+        # quantize(model, weights=qfloat8)
+        # freeze(model)
         print(f"Quantod in {time.time() - start_time:.2f} seconds")
 
         return Llama(model, tokenizer)
