@@ -14,7 +14,6 @@ from fairscale.nn.model_parallel.layers import (
     VocabParallelEmbedding,
 )
 from torch import nn
-from llama.config import DEVICE
 
 
 @dataclass
@@ -257,10 +256,10 @@ class Transformer(nn.Module):
         self.n_layers = params.n_layers
         self.layer_order = []
         layer_ranges = [
-            (0, 16),
-            (16, 24),
+            (0, 80),
+            # (16, 24),
             # (16, 20),
-            (20, 28),
+            # (20, 28),
             # (18, 22),
             # (20, 24),
             # (21, 25),
@@ -268,7 +267,7 @@ class Transformer(nn.Module):
             # (22, 26),
             # (24, 26),
             # (24, 28),
-            (28, 32),
+            # (28, 32),
         ]
         for start_idx, end_idx in layer_ranges:
             self.layer_order.extend(range(start_idx, end_idx))
@@ -302,10 +301,9 @@ class Transformer(nn.Module):
 
         mask = None
         if seqlen > 1:
-            mask = torch.full((seqlen, seqlen), float("-inf"), device="cpu")
+            mask = torch.full((seqlen, seqlen), float("-inf"), device=tokens.device)
 
             mask = torch.triu(mask, diagonal=1)
-            mask = mask.to(device=tokens.device)
 
             # When performing key-value caching, we compute the attention scores
             # only for the new sequence. Thus, the matrix of scores is of size

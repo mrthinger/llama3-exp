@@ -16,7 +16,7 @@ from fairscale.nn.model_parallel.initialize import (
     model_parallel_is_initialized,
 )
 
-from llama.model import ModelArgs, Transformer
+from llama.model_fairscale import ModelArgs, Transformer
 from llama.tokenizer import ChatFormat, Dialog, Message, Tokenizer
 from quanto import Calibration, freeze, qfloat8, qint4, qint8, quantize
 from llama.config import DEVICE
@@ -103,9 +103,8 @@ class Llama:
         tokenizer = Tokenizer(model_path=tokenizer_path)
         assert model_args.vocab_size == tokenizer.n_words
 
-        # torch.set_default_device("cuda" if torch.cuda.is_available() else "cpu")
-        # model = Transformer(model_args)
-        model = Transformer(model_args).to(device=DEVICE)
+        model = Transformer(model_args)
+        # model = Transformer(model_args).to(device=DEVICE)
 
         model.load_state_dict(checkpoint, strict=False)
         print(f"Loaded in {time.time() - start_time:.2f} seconds")
@@ -114,7 +113,7 @@ class Llama:
 
         # quantize(model, weights=qfloat8)
         # freeze(model)
-        print(f"Quantod in {time.time() - start_time:.2f} seconds")
+        # print(f"Quantod in {time.time() - start_time:.2f} seconds")
 
         return Llama(model, tokenizer)
 
