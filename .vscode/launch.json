@@ -12,16 +12,20 @@
         },
         "args": [
           "--nproc_per_node",
-          "1",
+          "8",
           "${workspaceFolder}/example_chat_completion.py",
-          "--ckpt_dir",
-          "Meta-Llama-3-8B-Instruct/",
-          "--tokenizer_path",
-          "Meta-Llama-3-8B-Instruct/tokenizer.model",
           "--max_seq_len",
-          "512",
+          "1024",
           "--max_batch_size",
-          "6"
+          "16",
+          "--temperature",
+          "0",
+          "--top_p",
+          "0.95",
+          "--ckpt_dir",
+          "Meta-Llama-3-70B-Instruct/",
+          "--tokenizer_path",
+          "Meta-Llama-3-70B-Instruct/tokenizer.model"
         ]
       }
     ]

@@ -78,7 +78,7 @@ def main(
 
     non_completed_problems = get_non_completed_problems(samples)
 
-    for i in tqdm(range(0, len(get_human_eval_plus()), max_batch_size)):
+    for i in tqdm(range(0, len(non_completed_problems), max_batch_size)):
         batch_problems = non_completed_problems[i : i + max_batch_size]
 
         dialogs: List[Dialog] = [
