@@ -97,7 +97,6 @@ class Attention(nn.Module):
         self.n_local_kv_heads = self.n_kv_heads // model_parallel_size
         self.n_rep = self.n_local_heads // self.n_local_kv_heads
         self.head_dim = args.dim // args.n_heads
-        self.device = torch.device(DEVICE)
 
         self.wq = ColumnParallelLinear(
             args.dim,
@@ -135,7 +134,7 @@ class Attention(nn.Module):
                 self.n_local_kv_heads,
                 self.head_dim,
             )
-        ).to(self.device)
+        ).cuda()
         self.cache_v = torch.zeros(
             (
                 args.max_batch_size,
@@ -143,7 +142,7 @@ class Attention(nn.Module):
                 self.n_local_kv_heads,
                 self.head_dim,
             )
-        ).to(self.device)
+        ).cuda()
 
     def forward(
         self,
@@ -259,15 +258,15 @@ class Transformer(nn.Module):
         self.layer_order = []
         layer_ranges = [
             (0, 16),
-            (16, 20),
+            (16, 24),
             # (16, 20),
-            (18, 22),
+            (20, 28),
             # (18, 22),
-            (20, 24),
             # (20, 24),
-            (22, 26),
+            # (21, 25),
             # (22, 26),
-            (24, 28),
+            # (22, 26),
+            # (24, 26),
             # (24, 28),
             (28, 32),
         ]
