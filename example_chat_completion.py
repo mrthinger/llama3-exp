@@ -89,13 +89,12 @@ def main(
         for dialog, result in zip(dialogs, results):
             for msg in dialog:
                 print(f"{msg['role'].capitalize()}: {msg['content']}\n")
-
-            result_code_blocks = extract_md_blocks(result["generation"]["content"])
-            if len(result_code_blocks) == 0:
-                print("\033[91mNO CODE FROM ASSISTANT!\033[0m")
                 print(
                     f"> {result['generation']['role'].capitalize()}: {result['generation']['content']}"
                 )
+            result_code_blocks = extract_md_blocks(result["generation"]["content"])
+            if len(result_code_blocks) == 0:
+                print("\033[91mNO CODE FROM ASSISTANT!\033[0m")
             else:
                 result_block = result_code_blocks[0]
                 print("\033[92mCODE FROM ASSISTANT:\033[0m")
