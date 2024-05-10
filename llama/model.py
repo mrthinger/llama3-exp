@@ -232,12 +232,12 @@ class Transformer(nn.Module):
             (18, 22),
             # (18, 22),
             (20, 24),
-            (21, 25),
+            # (21, 25),
             (22, 26),
             # (22, 26),
-            (24, 28),
+            (24, 26),
             # (24, 28),
-            (28, 32),
+            (26, 32),
         ]
         for start_idx, end_idx in layer_ranges:
             self.layer_order.extend(range(start_idx, end_idx))
