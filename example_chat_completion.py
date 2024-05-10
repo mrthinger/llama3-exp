@@ -19,6 +19,15 @@ def extract_md_blocks(text):
     return [block.strip() for block in matches]
 
 
+def get_non_completed_problems(samples):
+    non_completed_problems = [
+        (task_id, problem)
+        for task_id, problem in get_human_eval_plus().items()
+        if not any(sample["task_id"] == task_id for sample in samples)
+    ]
+    return non_completed_problems
+
+
 def main(
     ckpt_dir: str,
     tokenizer_path: str,
@@ -66,19 +75,20 @@ def main(
         samples = []
     else:
         samples = list(load_solutions("samples.jsonl"))
-        
-    for task_id, problem in tqdm(get_human_eval_plus().items()):
-        if any(sample["task_id"] == task_id for sample in samples):
-            print(f"Skipping task {task_id} as it already has a sample")
-            continue
-        
+
+    non_completed_problems = get_non_completed_problems(samples)
+
+    for i in tqdm(range(0, len(get_human_eval_plus()), max_batch_size)):
+        batch_problems = non_completed_problems[i : i + max_batch_size]
+
         dialogs: List[Dialog] = [
-            [{"role": "user", "content": problem["prompt"]}],
+            [{"role": "user", "content": problem["prompt"]}]
+            for task_id, problem in batch_problems
         ]
 
-        # dialogs: List[Dialog] = [
-        #     [{"role": "user", "content": "Hey! Whats up??"}],
-        # ]
+        if not dialogs:
+            continue
+
         results = generator.chat_completion(
             dialogs,
             max_gen_len=max_gen_len,
@@ -86,7 +96,7 @@ def main(
             top_p=top_p,
         )
 
-        for dialog, result in zip(dialogs, results):
+        for (task_id, problem), dialog, result in zip(batch_problems, dialogs, results):
             for msg in dialog:
                 print(f"{msg['role'].capitalize()}: {msg['content']}\n")
                 print(
