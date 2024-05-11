@@ -83,8 +83,8 @@ def main(
 
         dialogs: List[Dialog] = [
             # [{"role": "user", "content":  "For the below python function, write the correct implmentation.\nEnsure the full answer is between backticks. \n```python\nFULL_ANSWER_HERE```\n\n\n---\n"+ problem["prompt"]}]
-            [{"role": "user", "content": problem["prompt"]}]
-            # [{"role": "user", "content": "write the python function\n\n" + problem["prompt"]}]
+            # [{"role": "user", "content": problem["prompt"]}]
+            [{"role": "user", "content": "write the python function\n\n" + problem["prompt"]}]
             for task_id, problem in batch_problems
         ]
 
