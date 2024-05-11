@@ -1,7 +1,7 @@
 gen70:
     torchrun --nproc_per_node 8 example_chat_completion.py \
         --max_seq_len 1024 \
-        --max_batch_size 64 \
+        --max_batch_size 256 \
         --temperature 0 \
         --top_p 0.95 \
         --ckpt_dir Meta-Llama-3-70B-Instruct/ \
