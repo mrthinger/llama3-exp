@@ -256,13 +256,17 @@ class Transformer(nn.Module):
         self.n_layers = params.n_layers
         self.layer_order = []
         layer_ranges = [
-            (0, 20),
-            (10, 30),
-            (20, 40),
-            (30, 50),
-            (40, 60),
-            (50, 70),
-            (60, 80),
+            (0, 50),
+            # (10, 30),
+            (45, 65),
+            # (50, 60),
+            (55, 75),
+            # (60, 70),
+            # (30, 50),
+            # (40, 60),
+            # (50, 70),
+            (65, 80),
+            # (60, 80),
         ]
         for start_idx, end_idx in layer_ranges:
             self.layer_order.extend(range(start_idx, end_idx))
