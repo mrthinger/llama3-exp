@@ -83,7 +83,7 @@ def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
             shard_tensors[key] = tensor_shard
 
         pth_output_path = os.path.join(
-            pth_output_dir, f"model-{model_parallel_rank}.pth"
+            pth_output_dir, f"consolidated.{model_parallel_rank:02d}.pth"
         )
         torch.save(shard_tensors, pth_output_path)
         print(f"Converted shard {model_parallel_rank} to {pth_output_path}")
@@ -91,5 +91,5 @@ def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
 
 # Example usage
 safetensors_dir = "Smaug-Llama-3-70B-Instruct"
-pth_output_dir = "70b"
+pth_output_dir = "model_weights/Smaug-Llama-3-70B-Instruct"
 convert_safetensors_to_pth(safetensors_dir, pth_output_dir)
