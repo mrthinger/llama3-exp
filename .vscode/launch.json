@@ -23,9 +23,9 @@
           "--top_p",
           "0.95",
           "--ckpt_dir",
-          "Meta-Llama-3-70B-Instruct/",
+          "model_weights/Smaug-Llama-3-70B-Instruct/",
           "--tokenizer_path",
-          "Meta-Llama-3-70B-Instruct/tokenizer.model"
+          "model_weights/Smaug-Llama-3-70B-Instruct/tokenizer.model"
         ]
       }
     ]

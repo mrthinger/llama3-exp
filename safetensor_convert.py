@@ -3,7 +3,6 @@ from safetensors import safe_open
 import os
 from fairscale.nn.model_parallel.utils import VocabUtility
 import glob
-
 from tqdm import tqdm
 
 
@@ -19,6 +18,42 @@ def divide_and_check_no_remainder(numerator, denominator):
     return numerator // denominator
 
 
+def rename_layers(tensors):
+    name_mapping = {
+        "model.embed_tokens.weight": "tok_embeddings.weight",
+        "lm_head.weight": "output.weight",
+        "model.norm.weight": "norm.weight",
+        # Layers mappings
+        "model.layers.{}.input_layernorm.weight": "layers.{}.attention_norm.weight",
+        "model.layers.{}.post_attention_layernorm.weight": "layers.{}.ffn_norm.weight",
+        "model.layers.{}.mlp.gate_proj.weight": "layers.{}.feed_forward.w1.weight",
+        "model.layers.{}.mlp.down_proj.weight": "layers.{}.feed_forward.w2.weight",
+        "model.layers.{}.mlp.up_proj.weight": "layers.{}.feed_forward.w3.weight",
+        "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attention.wk.weight",
+        "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attention.wq.weight",
+        "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attention.wv.weight",
+        "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attention.wo.weight",
+    }
+
+    renamed_tensors = {}
+    num_layers = 80
+    for key, tensor in tensors.items():
+        renamed = False
+        for i in range(num_layers):
+            for incorrect, correct in name_mapping.items():
+                incorrect_name = incorrect.format(i)
+                correct_name = correct.format(i)
+                if key == incorrect_name:
+                    renamed_tensors[correct_name] = tensor
+                    renamed = True
+                    break
+            if renamed:
+                break
+        if not renamed:
+            renamed_tensors[key] = tensor
+    return renamed_tensors
+
+
 def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
     model_parallel_world_size = get_model_parallel_world_size()
 
@@ -32,13 +67,14 @@ def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
             for k in f.keys():
                 tensors[k] = f.get_tensor(k)
 
+    # Rename the layers
+    tensors = rename_layers(tensors)
+
     for model_parallel_rank in tqdm(range(model_parallel_world_size)):
         shard_tensors = {}
         for key, tensor in tensors.items():
             if (
                 "tok_embeddings.weight" in key
-                or "output.weight" in key
-                or "embed_tokens.weight" in key
             ):
                 # Shard along the vocabulary dimension
                 vocab_start_index, vocab_end_index = (
@@ -48,17 +84,12 @@ def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
                 )
                 tensor_shard = tensor[vocab_start_index:vocab_end_index].clone()
             elif (
-                "wq.weight" in key
-                or "wk.weight" in key
-                or "wv.weight" in key
-                or "w1.weight" in key
-                or "w3.weight" in key
-                or "q_proj.weight" in key
-                or "k_proj.weight" in key
-                or "v_proj.weight" in key
-                or "gate_proj.weight" in key
-                or "down_proj.weight" in key
-                or "up_proj.weight" in key
+                "attention.wq.weight" in key
+                or "attention.wk.weight" in key
+                or "attention.wv.weight" in key
+                or "feed_forward.w1.weight" in key
+                or "feed_forward.w3.weight" in key
+                or "output.weight" in key
             ):
                 # Column parallelism
                 partition_dim = 0
@@ -68,7 +99,10 @@ def convert_safetensors_to_pth(safetensors_dir, pth_output_dir):
                 start_index = model_parallel_rank * output_size_per_partition
                 end_index = start_index + output_size_per_partition
                 tensor_shard = tensor[start_index:end_index, :].clone()
-            elif "wo.weight" in key or "w2.weight" in key or "o_proj.weight" in key:
+            elif (
+                "attention.wo.weight" in key
+                or "feed_forward.w2.weight" in key
+            ):
                 # Row parallelism
                 partition_dim = 1
                 input_size_per_partition = divide_and_check_no_remainder(
